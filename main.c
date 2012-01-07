@@ -10,9 +10,9 @@
 
 
 #include <stdint.h>
-#include "APICommand.h"
-#include "channel.h"
-#include "ApiHandler.h"
+#include "libs/dspsys_lib_txrxspi/APICommand.h"
+#include "libs/dspsys_lib_channel/channel.h"
+#include "libs/dspsys_lib_txrxspi/ApiHandler.h"
 
 void notif_callback(ApiNot* notif);
 

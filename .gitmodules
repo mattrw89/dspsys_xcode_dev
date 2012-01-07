@@ -1,0 +1,6 @@
+[submodule "libs/dspsys_lib_channel"]
+	path = libs/dspsys_lib_channel
+	url = git@github.com:mattrw89/dspsys_lib_channel
+[submodule "libs/dspsys_lib_txrxspi"]
+	path = libs/dspsys_lib_txrxspi
+	url = git@github.com:mattrw89/dspsys_lib_txrxspi

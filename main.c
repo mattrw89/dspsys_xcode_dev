@@ -13,6 +13,8 @@
 #include "libs/dspsys_lib_txrxspi/APICommand.h"
 #include "libs/dspsys_lib_channel/channel.h"
 #include "libs/dspsys_lib_txrxspi/ApiHandler.h"
+#include "http_api.h"
+#include "hashmap.h"
 
 void notif_callback(ApiNot* notif);
 
@@ -270,6 +272,77 @@ int main (int argc, const char * argv[])
 
     tx_stack = Api_tx_stack_delete(tx_stack, w1.super.cmd_count);
     printf("length of stack: %d\n\n", Api_tx_stack_length(tx_stack));
+    
+    //WEB API COMMANDS
+    printf("now let's try web api commands\n");
+    
+    //these should work just fine
+    char url[80] = "/a/i/chanlist";
+    http_process_url(url, strlen(url));
+
+    strcpy(url, "/a/i/5/eqparams");
+    http_process_url(url, strlen(url));  
+    
+    strcpy(url, "/a/o/3/compparams");
+    http_process_url(url, strlen(url));  
+    
+    strcpy(url, "/a/i/15/blah");
+    http_process_url(url, strlen(url));    
+    
+    //check for improper api command identifier
+    strcpy(url, "/a/x/4/chanlist");
+    http_process_url(url, strlen(url));
+    
+    //check for larger than 16 num channels error
+    strcpy(url, "/a/i/17/chanlist");
+    http_process_url(url, strlen(url));
+    
+    //check for wrong channel number format
+    strcpy(url, "/a/i/1x/chanlist");
+    http_process_url(url, strlen(url));
+    
+    //get routing matrix without error
+    strcpy(url, "/a/m/routes");
+    http_process_url(url, strlen(url));
+    
+    strcpy(url, "/a/s/bob");
+    http_process_url(url, strlen(url));
+    
+    strcpy(url, "/a/s/clip");
+    http_process_url(url, strlen(url));
+    
+    //should return error
+    strcpy(url, "/a/s/blah");
+    http_process_url(url, strlen(url));
+    
+    strcpy(url, "/a/m/14/modroute");
+    http_process_url(url, strlen(url));
+    
+    strcpy(url, "/a/m/3/modroute?i=14&name=4325&blah=14.375&zenerab=1&z=98345.895");
+    printf("%s\n",url);
+    http_process_url(url, strlen(url));
+    
+    KeyValueMap map;
+    map.num_values = 0;
+    char testing[5];
+    strncpy(testing, "blah", 4);
+    testing[4] = '\0';
+    map_add_key_value_pair(&map, testing, 4.56789, 5);
+    
+    char testing2[5];
+    strncpy(testing2, "blag", 4);
+    testing2[4] = '\0';
+    map_add_key_value_pair(&map, testing2, 1.25, 5);
+    
+    char testing3[5];
+    strncpy(testing3, "blar", 4);
+    testing3[4] = '\0';
+    map_add_key_value_pair(&map, testing3, 12, 5);
+    
+    char testing4[5];
+    strncpy(testing4, "blag", 4);
+    testing4[4] = '\0';
+    map_get_value_by_key(&map, testing4); 
     
     printf("All done!");
 

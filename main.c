@@ -15,6 +15,7 @@
 #include "libs/dspsys_lib_txrxspi/ApiHandler.h"
 #include "http_api.h"
 #include "hashmap.h"
+#include "json.h"
 
 void notif_callback(ApiNot* notif);
 
@@ -158,13 +159,37 @@ int main (int argc, const char * argv[])
     channel_inspect_full(&ch1);
     
     //test interaction with eqband
-    EqBand* eq = channel_get_eqband(&ch1, 2);
+    EqBand* eq = channel_get_eqband(&ch1, 1);
     eqband_enable(eq);
     eqband_set_type(eq, HPF);
     eqband_set_band_num(eq, 5);
     eqband_set_bw(eq, 10.0);
     eqband_set_freq(eq, 1357);
     eqband_set_gain(eq, 4.0);
+    
+    EqBand* eq2 = channel_get_eqband(&ch1, 2);
+    eqband_enable(eq2);
+    eqband_set_type(eq2, HPF);
+    eqband_set_band_num(eq2, 5);
+    eqband_set_bw(eq2, 10.0);
+    eqband_set_freq(eq2, 1357);
+    eqband_set_gain(eq2, 4.0);
+    
+    EqBand* eq3 = channel_get_eqband(&ch1, 3);
+    eqband_enable(eq3);
+    eqband_set_type(eq3, HPF);
+    eqband_set_band_num(eq3, 5);
+    eqband_set_bw(eq3, 10.0);
+    eqband_set_freq(eq3, 1357);
+    eqband_set_gain(eq3, 4.0);
+    
+    EqBand* eq4 = channel_get_eqband(&ch1, 4);
+    eqband_enable(eq4);
+    eqband_set_type(eq4, HPF);
+    eqband_set_band_num(eq4, 5);
+    eqband_set_bw(eq4, 10.0);
+    eqband_set_freq(eq4, 1357);
+    eqband_set_gain(eq4, 4.0);
     
     eqband_inspect(channel_get_eqband(&ch1, 2));
     
@@ -205,16 +230,32 @@ int main (int argc, const char * argv[])
     Channel *ch13 = malloc(sizeof *ch13);
     Channel *ch14 = malloc(sizeof *ch14);
     
-    Channel* ch_array[14] = {ch01, ch02, ch03, ch04, ch05, ch06, ch07, ch08, ch09, ch10, ch11, ch12, ch13, ch14};
+    char temp[5];
+    strncpy(temp, "ch01", 4);
+    temp[4] = '\0';
     
+    
+    strncpy(&(ch01->name[0]), "ch01", 4);
+    ch01->name[4] = '\0';
+    
+    channel_set_name(ch01, "ch01");
+    
+    
+    Matrix* matrix = malloc(sizeof(Matrix));
+    
+    
+    Channel* ch_array[14] = {ch01, ch02, ch03, ch04, ch05, ch06, ch07, ch08, ch09, ch10, ch11, ch12, ch13, ch14};
+    matrix_set_input_channels(matrix, ch_array[0], 14);
     Channel_ctor(ch02, 2, "Ch2!", ACTIVE, INPUT); 
     
     channel_inspect_basic(ch_array[1]);
     channel_inspect_basic(ch02);
     
-    for(int i = 0; i < 13; i++) {
-        free (ch_array[i]);
-    }
+    
+    
+//    for(int i = 0; i < 13; i++) {
+//        free (ch_array[i]);
+//    }
     
     printf("size of ch_array: %lu bytes\n", sizeof(ch_array));
     printf("size of a channel: %lu bytes\n", sizeof(Channel));
@@ -327,22 +368,35 @@ int main (int argc, const char * argv[])
     char testing[5];
     strncpy(testing, "blah", 4);
     testing[4] = '\0';
-    map_add_key_value_pair(&map, testing, 4.56789, 5);
+    //map_add_key_value_pair(&map, testing, 4.56789, 5);
     
     char testing2[5];
     strncpy(testing2, "blag", 4);
     testing2[4] = '\0';
-    map_add_key_value_pair(&map, testing2, 1.25, 5);
+    //map_add_key_value_pair(&map, testing2, 1.25, 5);
     
     char testing3[5];
     strncpy(testing3, "blar", 4);
     testing3[4] = '\0';
-    map_add_key_value_pair(&map, testing3, 12, 5);
+    //map_add_key_value_pair(&map, testing3, 12, 5);
     
     char testing4[5];
     strncpy(testing4, "blag", 4);
     testing4[4] = '\0';
     map_get_value_by_key(&map, testing4); 
+    
+    Json* json1 = (Json*) json_encode_comp(&ch1);
+    printf("comp encoded: %s\n\n", json1->string[0]);
+
+    Json* json2 = (Json*) json_encode_eq(&ch1);
+    printf("eq encoded: %s\n\n", json2->string[0]);
+    
+    Json* json3 = (Json*) json_encode_channels(ch_array, 14);
+    printf("channels encoded: %s \n\n",json3->string[0]);
+    
+    char test16[10];
+    get_string_from_float(19590.345, test16);
+    printf("%s\n",test16);
     
     printf("All done!");
 

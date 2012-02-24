@@ -16,9 +16,12 @@ typedef struct KeyValueMap {
     char keys[20][20];
     float values[20];
     uint8_t num_values;
+    char char_value[20][10];
 } KeyValueMap;
 
-void map_add_key_value_pair(KeyValueMap* map, char* key, float value, uint8_t length);
+void map_add_key_value_pair(KeyValueMap* map, char* key, char* char_value, float value, uint8_t length);
+
+void map_add_key_value_pair_lite(KeyValueMap* map, char* key, char* char_value, uint8_t length);
 
 float map_get_value_by_key(KeyValueMap* map, char* key);
 

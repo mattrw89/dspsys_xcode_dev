@@ -175,11 +175,17 @@ uint8_t extract_query_params(char* string, uint8_t* length, KeyValueMap* map) {
         while ( (kv_counter != 99) && (string[0] != '\0') ) {
             uint8_t equals_position = strcspn(string, "="); //figure out where the equal sign is in the string
             string[equals_position] = '\0'; //set the equals to the string termination character
-            char key[20];
+            
+            char key[20],value[20];
             strncpy(key, string, equals_position); //copy key into new memory location before string gets incremented by get_value_from_string
             key[equals_position] = '\0';
             
-            map_add_key_value_pair(map, key, get_value_from_string(string, length, equals_position), equals_position+1);
+            uint8_t length_of_value = strcspn(string, "&/");
+            strncpy(value, string, length_of_value);
+            value[length_of_value] = '\0';
+            
+            map_add_key_value_pair(map, key, value, get_value_from_string(string, length, equals_position), equals_position+1);
+            
             
             //if there is another parameter, dictated by a &, then increment the counter and move it past there.
             if ( string[0] == '&' ) {
@@ -232,3 +238,40 @@ float get_value_from_string(char* string, uint8_t* length, uint8_t offset) {
     }
     return temp_value;
 }
+
+void get_string_from_float(float value, char* string) {
+    float value1 = value;
+    uint8_t temp;
+    float divider = 10000;
+    uint8_t start = 0;
+    uint8_t start_post_decimal = 0;
+    uint8_t decimal_placed = 0;
+    char* chr_ptr = string;
+    
+    for (uint8_t i=0; i<9; i++) {
+        
+        temp = value1/divider;
+        if(temp > 0 && start == 0) {
+            start = 1;
+        }
+        
+        if(start && !start_post_decimal) {
+            *chr_ptr = temp + '0';
+            value1 -= temp*divider;
+            chr_ptr += sizeof(char);
+        }
+        divider /= 10;
+        
+        if(divider < 1 && !decimal_placed && start) {
+            *chr_ptr = '.';
+            decimal_placed = 1;
+            chr_ptr += sizeof(char);
+        }
+    }
+    if (chr_ptr == string) {
+        *chr_ptr = '0';
+        chr_ptr += sizeof(char);
+    }
+    *chr_ptr = '\0';
+}
+

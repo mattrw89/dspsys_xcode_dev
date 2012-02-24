@@ -11,8 +11,11 @@
 
 #include <string.h>
 #include <stdint.h>
-#include "libs/dspsys_lib_channel/common.h"
 #include "hashmap.h"
+#include "libs/dspsys_lib_channel/common.h"
+#include <stdlib.h>
+
+//#include "json.h"
 
 ////////////HTTP API INFO STRUCTURE & METHODS///////////////
 typedef struct HttpApiInfo {
@@ -44,5 +47,5 @@ void advance_string(char* string, uint8_t* length, uint8_t num_chars);
 uint8_t get_channel_number(char* string, uint8_t* length);
 uint8_t extract_query_params(char* string, uint8_t* length, KeyValueMap* map);
 float get_value_from_string(char* string, uint8_t* length, uint8_t offset);
-
+void get_string_from_float(float value, char* string);
 #endif

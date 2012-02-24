@@ -9,10 +9,20 @@
 #include <stdio.h>
 #include "hashmap.h"
 
-void map_add_key_value_pair(KeyValueMap* map, char* key, float value, uint8_t length) {
+void map_add_key_value_pair(KeyValueMap* map, char* key, char* char_value, float value, uint8_t length) {
     uint8_t position = map_get_length(map);
     map->values[position] = value;
     strncpy(map->keys[position], key, length);
+    map->keys[position][length] = '\0';    
+    strcpy(map->char_value[position], char_value);
+    map->num_values++;
+}
+
+void map_add_key_value_pair_lite(KeyValueMap* map, char* key, char* char_value, uint8_t length) {
+    uint8_t position = map_get_length(map);
+    strncpy(map->keys[position], key, length);
+    map->keys[position][length] = '\0';
+    strcpy(map->char_value[position], char_value);
     map->num_values++;
 }
 

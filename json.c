@@ -10,15 +10,15 @@
 #include "json.h"
 
 //Convert eqbands in a channel to json
-Json* json_encode_eq(Channel* channel) {
+Json* json_encode_eq(Channel* channel, Json* json_output) {
     Json* json[4];
     json[0] = malloc(sizeof(Json));
     json[1] = malloc(sizeof(Json));
     json[2] = malloc(sizeof(Json));
     json[3] = malloc(sizeof(Json));
     char temp[20];
-    
-    for( uint8_t i=0; i < 4; i++ ) {
+    uint8_t i=0;
+    for( i=0; i < 4; i++ ) {
     
         KeyValueMap map;
         map.num_values = 0;
@@ -48,18 +48,17 @@ Json* json_encode_eq(Channel* channel) {
     
     //Now we have 4 json objects, each containing a string with an eq band json object, stringified
     //need to concatenate the objects into one json object that can be returned
-    Json* return_value = json_encode_array(json, 4);
+    json_encode_array(json, 4, json_output);
     free(json[0]);
     free(json[1]);
     free(json[2]);
     free(json[3]);
     
-    return return_value;
+    return json_output;
 }
 
 //Covert comp in a channel to json
-Json* json_encode_comp(Channel* channel) {
-    Json* json = malloc(sizeof(Json));
+Json* json_encode_comp(Channel* channel, Json* json_output) {
     KeyValueMap map;
     map.num_values = 0;
     char temp[20];
@@ -84,27 +83,27 @@ Json* json_encode_comp(Channel* channel) {
     get_string_from_float(comp_is_enabled(current), temp);
     map_add_key_value_pair_lite(&map, "enable", temp, 6);
     
-    json = json_encode_hashmap(json, &map);
+    json_encode_hashmap(json_output, &map);
     
-    return json;
+    return json_output;
 }
 
 //Convert channel names and active/inactive status to json
-Json* json_encode_channels(Channel* channels[], uint8_t length) {
+Json* json_encode_channels(Io_enum io, uint8_t length, Json* json_output) {
     Json* json[16];
-    Json* return_value;
-
+	Channel *current;
+	
     char temp[3];
     char long_temp[20];
+    int counter=0;
     
-    for (uint8_t counter=0; counter < length; counter++) {
-    
+    for ( counter=0; counter < length; counter++) {
         KeyValueMap map;
         map.num_values = 0;
+        current = get_channel_from_memory(io, counter+1);
         
         json[counter] = malloc(sizeof(Json));
         json[counter]->total_length = 0;
-        Channel* current = channels[counter];
         
         strcpy(long_temp, channel_get_name(current));
         if (long_temp[0] == '\0') {
@@ -118,21 +117,24 @@ Json* json_encode_channels(Channel* channels[], uint8_t length) {
         temp[0] = channel_is_active(current) + 48;
         temp[1] = '\0';
         
-        map_add_key_value_pair_lite(&map, "active", temp, 6);
+        map_add_key_value_pair_lite(&map, "a", temp, 6);
         
-        temp[0] = channel_get_io(current) + 48;
-        temp[1] = '\0';
+        //temp[0] = channel_get_io(current) + 48;
+        //temp[1] = '\0';
         
-        map_add_key_value_pair_lite(&map, "io", temp, 2);
+        //map_add_key_value_pair_lite(&map, "io", temp, 2);
         
         itoa(channel_get_chan_num(current), temp);
         map_add_key_value_pair_lite(&map, "num", temp, 3);
         
         json[counter] = json_encode_hashmap(json[counter], &map);
-        
     }
-    return_value = json_encode_array(json, length);
-    return return_value;
+    json_encode_array(json, length, json_output);
+    
+    for( counter=0; counter < length; counter++) {
+    	free(json[counter]);
+    }
+    return json_output;
 }
 
 //Encode Routing matrix as JSON
@@ -151,11 +153,11 @@ Json* json_encode_matrix(Matrix* matrix) {
     return json;
 }
 
-Json* json_encode_ok() {
-    Json* json = malloc(sizeof(Json));
+Json* json_encode_ok(Json* json) {
     json->string[0][0] = '[';
     json->string[0][1] = ']';
     json->string[0][2] = '\0';
+    json->total_length=2;
     return json;
 }
 
@@ -163,13 +165,14 @@ Json* json_encode_ok() {
 
 //Convert Hashmap to JSON object
 Json* json_encode_hashmap(Json* json, KeyValueMap* map) {
+	json->total_length = 0;
     json->string[0][0] = '{'; //start the json object
     
     char* char_ptr = &(json->string[0][0]); // create a pointer to the first char memory
     
     char_ptr += sizeof(char); // increment the 
-    
-    for(uint8_t i=1; i <= map_get_length(map); i++) {
+    uint8_t i =1;
+    for(i=1; i <= map_get_length(map); i++) {
         *char_ptr = 34; //double quote ascii
         char_ptr += sizeof(char);
         uint8_t length_of_key = strlen(map->keys[i-1]);
@@ -210,8 +213,12 @@ Json* json_encode_hashmap(Json* json, KeyValueMap* map) {
         } else *char_ptr = '}';
         char_ptr += sizeof(char);
     }
-    *char_ptr = '\0';
     json_inc_length(json, 1); // inc for closing bracket
+    
+    //write extra space just to make sure we're OK once parsed by jQuery
+    *char_ptr = 32;
+    char_ptr += sizeof(char);
+    *char_ptr = '\0';
     return json;
 }
 
@@ -236,15 +243,15 @@ Json* json_concatenate(Json* first, Json* second) {
 }
 
 //make a JSON array out of an array of JSON objects
-Json* json_encode_array(Json* objects[], uint8_t num_objects) {
-    Json* array = malloc(sizeof(Json));
+Json* json_encode_array(Json* objects[], uint8_t num_objects, Json* json_output) {
+    Json* array = json_output;
     array->total_length = 0;
     
     //add initial array bracket
     array->string[0][0] = '[';
     json_inc_length(array, 1);
-    
-    for (uint8_t i=0; i < num_objects; i++) {
+    uint8_t i=0;
+    for ( i=0; i < num_objects; i++) {
         json_concatenate(array, objects[i]);
         
         if ( i != (num_objects-1) ) {
@@ -254,7 +261,9 @@ Json* json_encode_array(Json* objects[], uint8_t num_objects) {
     }
     array->string[0][array->total_length] = ']';
     json_inc_length(array, 1);
-    array->string[0][array->total_length] = '\0';
+    array->string[0][array->total_length] = 32; // 32 is a space.  to add padding for client-side JSON parser
+    array->string[0][array->total_length+1] = 32;
+    array->string[0][array->total_length+2] = '\0';
     
     return array;
 }

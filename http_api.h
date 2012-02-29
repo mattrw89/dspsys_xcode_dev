@@ -12,17 +12,20 @@
 #include <string.h>
 #include <stdint.h>
 #include "hashmap.h"
-#include "libs/dspsys_lib_channel/common.h"
+#include "common.h"
 #include <stdlib.h>
-
-//#include "json.h"
+#include "global.h"
+#include "json.h"
+#include "channel.h"
+#include "eq.h"
+#include "comp.h"
 
 ////////////HTTP API INFO STRUCTURE & METHODS///////////////
 typedef struct HttpApiInfo {
     uint8_t chan_num;
     Io_enum io_type;
     KeyValueMap params;
-} HttpApiInfo;
+} HttpApiInfo;   
 
 //////////////  Constructor /////////////////
 void http_api_info_ctor(HttpApiInfo* info);
@@ -39,7 +42,7 @@ uint8_t http_api_info_set_chan_num(HttpApiInfo* info, uint8_t cnum);
 
 ///////////// Actual Processing Method //////////////
 
-uint8_t http_process_url(char* first_char, uint8_t length);
+uint8_t http_process_url(char* first_char, uint8_t length, void* json);
 
 
 ///////////// Private Processing Methods ///////////////////

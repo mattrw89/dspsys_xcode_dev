@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include "http_api.h"
 
+
 void http_api_info_ctor(HttpApiInfo* info) {
     info->params.num_values = 0;
 }
@@ -37,9 +38,10 @@ uint8_t http_api_info_set_chan_num(HttpApiInfo* info, uint8_t cnum) {
 
 
 
-uint8_t http_process_url(char* first_char, uint8_t length) {
+uint8_t http_process_url(char* first_char, uint8_t length, void* jsonvoid) {
     printf("value: %d\n",strncmp(first_char,"/a/",3));
     char temp[80];
+    Json* json = (Json*) jsonvoid;
     uint8_t temp_len = length;
     
     HttpApiInfo api_info;
@@ -60,13 +62,69 @@ uint8_t http_process_url(char* first_char, uint8_t length) {
             advance_string(temp, &temp_len, 2);
             printf("%s\n",temp);
             //now we need to find the channel number
+            uint8_t testnum = get_channel_number(temp,&temp_len);
+            Io_enum io = (Io_enum) http_api_info_get_io(&api_info);
             
-            if ( (http_api_info_set_chan_num(&api_info, get_channel_number(temp, &temp_len))) > 0) {
+            if ( (testnum > 0) && (http_api_info_set_chan_num(&api_info, testnum) > 0) ) {
+                Channel* tempchan = get_channel_from_memory(io, testnum);
+                
+                //make sure a channel according to those specifications exists.  if not, return no match.	
+                if ( tempchan == NULL )	return 0;
                 
                 if (!strncmp(temp, "eqparams", 7)) {
+                	json_encode_eq(tempchan, json);
                     printf("eqparams!!\n");
+                    return 1;
+                } else if(!strncmp(temp,"modeq",5)) {
+                	advance_string(temp, &temp_len, 5);
+                    extract_query_params(temp, &temp_len, http_api_info_get_params(&api_info));
+                    float band_num = map_get_value_by_key(http_api_info_get_params(&api_info),"b");
+                    float eq_type = map_get_value_by_key(http_api_info_get_params(&api_info),"t");
+                    float eq_q = map_get_value_by_key(http_api_info_get_params(&api_info),"q");
+                    float eq_freq = map_get_value_by_key(http_api_info_get_params(&api_info),"f");
+                    float eq_gain = map_get_value_by_key(http_api_info_get_params(&api_info),"g");
+                    float eq_enable = map_get_value_by_key(http_api_info_get_params(&api_info),"e");
+                    
+                    if( (band_num >= 1) && (band_num <= 4 ) ) {
+                    	EqBand* temp_eq_band = channel_get_eqband(tempchan, (uint8_t) band_num);
+                    	
+                    	eqband_set_type(temp_eq_band, (Eq_type_enum) eq_type);
+                    	eqband_set_bw(temp_eq_band, eq_q);
+                    	eqband_set_freq(temp_eq_band, eq_freq);
+                    	eqband_set_gain(temp_eq_band, eq_gain);
+                    	( (uint8_t)eq_enable == ENABLED) ? eqband_enable(temp_eq_band) : eqband_disable(temp_eq_band);
+                    	
+                    	json_encode_ok(json);
+                    	return 1;
+                    } else return 0;
+                    
+                	
                 } else if (!strncmp(temp, "compparams", 9)) {
+                	json_encode_comp(tempchan, json);
                     printf("compparams!!\n");
+                    return 1;
+                } else if (!strncmp(temp,"modcomp",7)) {
+                	printf("modcomp!\n");
+                	advance_string(temp, &temp_len, 7);
+                	
+                    extract_query_params(temp, &temp_len, http_api_info_get_params(&api_info));
+                    float ratio = map_get_value_by_key(http_api_info_get_params(&api_info),"r");
+                    float threshold = map_get_value_by_key(http_api_info_get_params(&api_info),"t");
+                    float attack = map_get_value_by_key(http_api_info_get_params(&api_info),"a");
+                    float release = map_get_value_by_key(http_api_info_get_params(&api_info),"rls");
+                    float gain = map_get_value_by_key(http_api_info_get_params(&api_info),"g");
+                    float enable = map_get_value_by_key(http_api_info_get_params(&api_info),"e");
+
+					Comp* temp_comp = channel_get_comp(tempchan);
+                    comp_set_ratio(temp_comp, ratio);
+                    comp_set_threshold(temp_comp,threshold);
+                    comp_set_attack(temp_comp,attack);
+                    comp_set_release(temp_comp,release);
+                    comp_set_gain(temp_comp, gain);
+                    ( (uint8_t)enable == ENABLED) ? comp_enable(temp_comp) : comp_disable(temp_comp);
+                    	
+                    json_encode_ok(json);
+                    return 1;
                 } else if (!strncmp(temp,"rename",6)) {
                     printf("rename channel!!!");
                 } else {
@@ -76,6 +134,14 @@ uint8_t http_process_url(char* first_char, uint8_t length) {
                 
             } else if (!strncmp(temp, "chanlist", 8)) {
                 //return a list of channel data
+                if ( io == INPUT) {
+                	json_encode_channels(INPUT,NUM_INPUT_CHANNELS, json);
+                	return 1;
+                } else if ( io == OUTPUT) {
+                	json_encode_channels(OUTPUT,NUM_OUTPUT_CHANNELS,json);
+                	return 1;
+                } else return 0;
+                
                 printf("return list of channel data\n");
                 
             } else {
@@ -116,19 +182,21 @@ uint8_t http_process_url(char* first_char, uint8_t length) {
         } else {
             //ERROR
             printf("ERROR: incorrect api command identifier\n");
+            return 0;
         }
     } else {
         printf("we don't have a web API command\n");
+        return 0;
         //we don't have an API command... send it to the filesystem
     }
     printf("channel number: %d\n\n\n", http_api_info_get_chan_num(&api_info));
-    return 1;
+    return 0;
 }
 
 void advance_string(char* string, uint8_t* length, uint8_t num_chars) {
     strncpy(string,string + num_chars*sizeof(char), *length-num_chars);
-    
-    for(int i=1; i <= num_chars; i++) {
+    int i=1;
+    for( i=1; i <= num_chars; i++) {
         string[*length-i] = '\0';    
     }
     
@@ -217,7 +285,8 @@ float get_value_from_string(char* string, uint8_t* length, uint8_t offset) {
         j--;
     }
     //loop through the digits in front of the decimal
-    for (uint8_t k = num_digits_front_decimal; k > 0; k--) {
+    uint8_t k=0;
+    for ( k = num_digits_front_decimal; k > 0; k--) {
         //if it's a number then add it's integer value to temp_value multiplied by the multiplier
         if( (string[0] <= '9') && (string[0] >= '0') ) {
             temp_value += (string[0] - '0') * mult;
@@ -230,7 +299,8 @@ float get_value_from_string(char* string, uint8_t* length, uint8_t offset) {
     if(dec_flag) {
         advance_string(string, length, 1);
         uint8_t num_digits_post_decimal = strcspn(string, "/&");
-        for (uint8_t w = num_digits_post_decimal; w >0; w--) {
+        uint8_t w=0;
+        for ( w = num_digits_post_decimal; w >0; w--) {
             temp_value += (string[0] -'0') * mult;
             mult /= 10;
             advance_string(string, length, 1);
@@ -247,8 +317,8 @@ void get_string_from_float(float value, char* string) {
     uint8_t start_post_decimal = 0;
     uint8_t decimal_placed = 0;
     char* chr_ptr = string;
-    
-    for (uint8_t i=0; i<9; i++) {
+    uint8_t i=0;
+    for ( i=0; i<9; i++) {
         
         temp = value1/divider;
         if(temp > 0 && start == 0) {

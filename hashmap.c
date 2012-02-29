@@ -6,7 +6,6 @@
 //  Copyright 2012 __MyCompanyName__. All rights reserved.
 //
 
-#include <stdio.h>
 #include "hashmap.h"
 
 void map_add_key_value_pair(KeyValueMap* map, char* key, char* char_value, float value, uint8_t length) {
@@ -34,14 +33,12 @@ float map_get_value_by_key(KeyValueMap* map, char* key) {
     uint8_t length_string = strlen(key);
     
     strncpy(search_string, key, 20);
-    
-    for (uint8_t i=0; i < length_values; i++) {
+    uint8_t i=0;
+    for ( i=0; i < length_values; i++) {
         if (!strncmp(map->keys[i], key, length_string)) {
             returned_value = map->values[i];
         }
     }
-    
-    printf("found value by key: %lf\n", returned_value);
     return returned_value;
 }
 
